@@ -127,6 +127,7 @@ case "$1" in
 	echo - galaxy-nexus
 	echo - nexus-s
 	echo - nexus-s-4g
+	echo - mytouch-4g
 	echo - otoro
 	echo - unagi
 	echo - pandaboard
