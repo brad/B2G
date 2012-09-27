@@ -83,6 +83,12 @@ case "$1" in
 	(cd device/samsung/crespo4g && ./download-blobs.sh)
 	;;
 
+"mytouch-4g")
+	echo DEVICE=mytouch4g >> .tmp-config &&
+	repo_sync mytouch4g &&
+	(cd device/htc/mytouch4g && ./download-blobs.sh)
+	;;
+
 "otoro_m4-demo")
     echo DEVICE=otoro >> .tmp-config &&
     repo_sync otoro_m4-demo &&
