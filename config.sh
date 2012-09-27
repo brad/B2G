@@ -83,10 +83,10 @@ case "$1" in
 	(cd device/samsung/crespo4g && ./download-blobs.sh)
 	;;
 
-"mytouch-4g")
-	echo DEVICE=mytouch4g >> .tmp-config &&
-	repo_sync mytouch4g &&
-	(cd device/htc/mytouch4g && ./download-blobs.sh)
+"glacier")
+	echo DEVICE=glacier >> .tmp-config &&
+	repo_sync glacier &&
+	(cd device/htc/glacier && ./download-blobs.sh)
 	;;
 
 "otoro_m4-demo")
@@ -127,7 +127,7 @@ case "$1" in
 	echo - galaxy-nexus
 	echo - nexus-s
 	echo - nexus-s-4g
-	echo - mytouch-4g
+	echo - glacier
 	echo - otoro
 	echo - unagi
 	echo - pandaboard
