@@ -12,6 +12,6 @@ export GAIA_DOMAIN &&
 export GAIA_PORT &&
 export GAIA_DEBUG &&
 export GECKO_OBJDIR &&
-cd ~ &&
+cd $TOP &&
 . build/envsetup.sh &&
 lunch $LUNCH
