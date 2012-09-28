@@ -85,8 +85,7 @@ case "$1" in
 
 "glacier")
 	echo DEVICE=glacier >> .tmp-config &&
-	repo_sync glacier &&
-	(cd device/htc/glacier && ./extract-files.sh)
+	repo_sync glacier
 	;;
 
 "otoro_m4-demo")
