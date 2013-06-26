@@ -64,11 +64,9 @@ if [ -n "$2" ]; then
 	git commit -m "manifest" &&
 	git branch -m $BRANCH &&
 	cd ..
-<<<<<<< HEAD
+
 else
 	GITREPO="git://github.com/b2gX/b2g-manifest.git"
-=======
->>>>>>> 14bfaf331bd9b69bce77bb16a008629883870e47
 fi
 
 echo MAKE_FLAGS=-j$((CORE_COUNT + 2)) > .tmp-config
@@ -106,7 +104,6 @@ case "$1" in
 	repo_sync $1
 	;;
 
-<<<<<<< HEAD
 "glacier")
 	echo DEVICE=glacier >> .tmp-config &&
 	repo_sync glacier
@@ -118,10 +115,7 @@ case "$1" in
     (cd device/qcom/otoro && ./extract-files.sh)
     ;;
 
-"otoro"|"unagi")
-=======
 "otoro"|"unagi"|"keon"|"inari"|"leo"|"hamachi"|"peak"|"helix")
->>>>>>> 14bfaf331bd9b69bce77bb16a008629883870e47
 	echo DEVICE=$1 >> .tmp-config &&
 	repo_sync $1
 	;;
