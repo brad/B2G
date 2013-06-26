@@ -1,16 +1,12 @@
 #!/bin/bash
 
-REPO=./repo
+REPO=${REPO:-./repo}
+sync_flags=""
 
 repo_sync() {
-	if [ "$GITREPO" = "$GIT_TEMP_REPO" ]; then
-		BRANCH="master"
-	else
-		BRANCH=$1
-	fi
 	rm -rf .repo/manifest* &&
-	$REPO init -u $GITREPO -b $BRANCH &&
-	$REPO sync
+	$REPO init -u $GITREPO -b $BRANCH -m $1.xml &&
+	$REPO sync $sync_flags
 	ret=$?
 	if [ "$GITREPO" = "$GIT_TEMP_REPO" ]; then
 		rm -rf $GIT_TEMP_REPO
@@ -23,7 +19,8 @@ repo_sync() {
 
 case `uname` in
 "Darwin")
-	CORE_COUNT=`system_profiler SPHardwareDataType | grep "Cores:" | sed -e 's/[ a-zA-Z:]*\([0-9]*\)/\1/'`
+	# Should also work on other BSDs
+	CORE_COUNT=`sysctl -n hw.ncpu`
 	;;
 "Linux")
 	CORE_COUNT=`grep processor /proc/cpuinfo | wc -l`
@@ -33,19 +30,45 @@ case `uname` in
 	exit -1
 esac
 
+GITREPO=${GITREPO:-"git://github.com/mozilla-b2g/b2g-manifest"}
+BRANCH=${BRANCH:-v1-train}
+
+while [ $# -ge 1 ]; do
+	case $1 in
+	-d|-l|-f|-n|-c|-q)
+		sync_flags="$sync_flags $1"
+		shift
+		;;
+	--help|-h)
+		# The main case statement will give a usage message.
+		break
+		;;
+	-*)
+		echo "$0: unrecognized option $1" >&2
+		exit 1
+		;;
+	*)
+		break
+		;;
+	esac
+done
+
 GIT_TEMP_REPO="tmp_manifest_repo"
 if [ -n "$2" ]; then
 	GITREPO=$GIT_TEMP_REPO
-	GITBRANCH="master"
 	rm -rf $GITREPO &&
 	git init $GITREPO &&
-	cp $2 $GITREPO/default.xml &&
+	cp $2 $GITREPO/$1.xml &&
 	cd $GITREPO &&
-	git add default.xml &&
+	git add $1.xml &&
 	git commit -m "manifest" &&
+	git branch -m $BRANCH &&
 	cd ..
+<<<<<<< HEAD
 else
 	GITREPO="git://github.com/b2gX/b2g-manifest.git"
+=======
+>>>>>>> 14bfaf331bd9b69bce77bb16a008629883870e47
 fi
 
 echo MAKE_FLAGS=-j$((CORE_COUNT + 2)) > .tmp-config
@@ -55,34 +78,35 @@ echo DEVICE_NAME=$1 >> .tmp-config
 case "$1" in
 "galaxy-s2")
 	echo DEVICE=galaxys2 >> .tmp-config &&
-	repo_sync galaxy-s2 &&
-	(cd device/samsung/galaxys2 && ./extract-files.sh)
+	repo_sync $1
 	;;
 
 "galaxy-nexus")
 	echo DEVICE=maguro >> .tmp-config &&
-	repo_sync maguro &&
-	(cd device/samsung/maguro && ./download-blobs.sh)
+	repo_sync $1
+	;;
+
+"nexus-4")
+	echo DEVICE=mako >> .tmp-config &&
+	repo_sync nexus-4
 	;;
 
 "optimus-l5")
 	echo DEVICE=m4 >> .tmp-config &&
-	repo_sync m4 &&
-	(cd device/lge/m4 && ./extract-files.sh)
+	repo_sync $1
 	;;
 
 "nexus-s")
 	echo DEVICE=crespo >> .tmp-config &&
-	repo_sync crespo &&
-	(cd device/samsung/crespo && ./download-blobs.sh)
+	repo_sync $1
 	;;
 
 "nexus-s-4g")
 	echo DEVICE=crespo4g >> .tmp-config &&
-	repo_sync crespo4g &&
-	(cd device/samsung/crespo4g && ./download-blobs.sh)
+	repo_sync $1
 	;;
 
+<<<<<<< HEAD
 "glacier")
 	echo DEVICE=glacier >> .tmp-config &&
 	repo_sync glacier
@@ -95,42 +119,59 @@ case "$1" in
     ;;
 
 "otoro"|"unagi")
+=======
+"otoro"|"unagi"|"keon"|"inari"|"leo"|"hamachi"|"peak"|"helix")
+>>>>>>> 14bfaf331bd9b69bce77bb16a008629883870e47
 	echo DEVICE=$1 >> .tmp-config &&
-	repo_sync otoro &&
-	(cd device/qcom/$1 && ./extract-files.sh)
+	repo_sync $1
+	;;
+
+"tara")
+	echo DEVICE=sp8810ea >> .tmp-config &&
+	echo LUNCH=sp8810eabase-eng >> .tmp-config &&
+	repo_sync $1
 	;;
 
 "pandaboard")
 	echo DEVICE=panda >> .tmp-config &&
-	repo_sync panda &&
-	(cd device/ti/panda && ./download-blobs.sh)
+	repo_sync $1
 	;;
 
-"emulator")
+"emulator"|"emulator-jb")
 	echo DEVICE=generic >> .tmp-config &&
 	echo LUNCH=full-eng >> .tmp-config &&
-	repo_sync master
+	repo_sync $1
 	;;
 
 "emulator-x86")
 	echo DEVICE=generic_x86 >> .tmp-config &&
 	echo LUNCH=full_x86-eng >> .tmp-config &&
-	repo_sync master
+	repo_sync emulator
 	;;
 
 *)
-	echo Usage: $0 \(device name\)
+	echo "Usage: $0 [-cdflnq] (device name)"
+	echo "Flags are passed through to |./repo sync|."
 	echo
 	echo Valid devices to configure are:
 	echo - galaxy-s2
 	echo - galaxy-nexus
+	echo - nexus-4
 	echo - nexus-s
 	echo - nexus-s-4g
 	echo - glacier
 	echo - otoro
 	echo - unagi
+	echo - inari
+	echo - keon
+	echo - peak
+	echo - leo
+	echo - hamachi
+	echo - helix
+	echo - tara
 	echo - pandaboard
 	echo - emulator
+	echo - emulator-jb
 	echo - emulator-x86
 	exit -1
 	;;

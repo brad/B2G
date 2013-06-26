@@ -1,4 +1,5 @@
 #!/bin/bash
+#set -x
 
 SCRIPT_NAME=$(basename $0)
 . load-config.sh
@@ -6,12 +7,12 @@ SCRIPT_NAME=$(basename $0)
 ADB=adb
 GDB=${GDB:-prebuilt/$(uname -s | tr "[[:upper:]]" "[[:lower:]]")-x86/toolchain/arm-linux-androideabi-4.4.x/bin/arm-linux-androideabi-gdb}
 B2G_BIN=/system/b2g/b2g
-GDBINIT=/tmp/b2g.gdbinit.$(whoami)
+GDBINIT=/tmp/b2g.gdbinit.$(whoami).$$
 
 GONK_OBJDIR=out/target/product/$DEVICE
 SYMDIR=$GONK_OBJDIR/symbols
 
-GDBSERVER_PID=$($ADB shell 'toolbox ps gdbserver | (read header; read user pid rest; echo $pid)')
+GDBSERVER_PID=$($ADB shell 'toolbox ps gdbserver | (read header; read user pid rest; echo -n $pid)')
 
 GDB_PORT=$((10000 + $(id -u) % 50000))
 if [ "$1" = "attach"  -a  -n "$2" ] ; then
@@ -49,20 +50,41 @@ else
       B2G_BIN=$1
       shift
    fi
+   [ -n "$MOZ_PROFILER_STARTUP" ] && GDBSERVER_ENV="$GDBSERVER_ENV MOZ_PROFILER_STARTUP=$MOZ_PROFILER_STARTUP "
    [ -n "$MOZ_DEBUG_CHILD_PROCESS" ] && GDBSERVER_ENV="$GDBSERVER_ENV MOZ_DEBUG_CHILD_PROCESS=$MOZ_DEBUG_CHILD_PROCESS "
+   [ -n "$MOZ_DEBUG_APP_PROCESS" ] && GDBSERVER_ENV="$GDBSERVER_ENV MOZ_DEBUG_APP_PROCESS='$MOZ_DEBUG_APP_PROCESS' "
    [ -n "$MOZ_IPC_MESSAGE_LOG" ]     && GDBSERVER_ENV="$GDBSERVER_ENV MOZ_IPC_MESSAGE_LOG=$MOZ_IPC_MESSAGE_LOG "
-   $ADB shell kill $B2G_PID
+
+   [ -n "$B2G_PID" ] && $ADB shell kill $B2G_PID
    [ "$B2G_BIN" = "/system/b2g/b2g" ] && $ADB shell stop b2g
-   $ADB shell LD_LIBRARY_PATH=/system/b2g LD_PRELOAD=/system/b2g/libmozglue.so $GDBSERVER_ENV gdbserver --multi :$GDB_PORT $B2G_BIN $@ &
+
+   if [ "$($ADB shell "if [ -f /system/b2g/libdmd.so ]; then echo 1; fi")" != "" ]; then
+     echo ""
+     echo "Using DMD."
+     echo ""
+     dmd="1"
+     ld_preload_extra="/system/b2g/libdmd.so"
+  fi
+
+   $ADB shell DMD=$dmd LD_LIBRARY_PATH=/system/b2g LD_PRELOAD=\"$ld_preload_extra /system/b2g/libmozglue.so\" TMPDIR=/data/local/tmp $GDBSERVER_ENV gdbserver --multi :$GDB_PORT $B2G_BIN $@ &
 fi
 
 sleep 1
 echo "set solib-absolute-prefix $SYMDIR" > $GDBINIT
+echo "handle SIGPIPE nostop" >> $GDBINIT
 echo "set solib-search-path $GECKO_OBJDIR/dist/bin:$SYMDIR/system/lib:$SYMDIR/system/lib/hw:$SYMDIR/system/lib/egl:$SYMDIR/system/bin:$GONK_OBJDIR/system/lib:$GONK_OBJDIR/system/lib/egl:$GONK_OBJDIR/system/lib/hw:$GONK_OBJDIR/system/vendor/lib:$GONK_OBJDIR/system/vendor/lib/hw:$GONK_OBJDIR/system/vendor/lib/egl" >> $GDBINIT
 echo "target extended-remote :$GDB_PORT" >> $GDBINIT
 
 PROG=$GECKO_OBJDIR/dist/bin/$(basename $B2G_BIN)
 [ -f $PROG ] || PROG=${SYMDIR}${B2G_BIN}
+
+if [[ "$-" == *x* ]]; then
+    # Since we got here, set -x was enabled near the top of the file. print
+    # out the contents of of the gdbinit file.
+    echo "----- Start of $GDBINIT -----"
+    cat $GDBINIT
+    echo "----- End of $GDBINIT -----"
+fi
 
 if [ "$SCRIPT_NAME" == "run-ddd.sh" ]; then
     echo "ddd --debugger \"$GDB -x $GDBINIT\" $PROG"
