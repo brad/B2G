@@ -64,7 +64,6 @@ if [ -n "$2" ]; then
 	git commit -m "manifest" &&
 	git branch -m $BRANCH &&
 	cd ..
-
 else
 	GITREPO="git://github.com/b2gX/b2g-manifest.git"
 fi
